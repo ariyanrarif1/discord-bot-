@@ -9,6 +9,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 import os
 import json
+from google.oauth2.service_account import Credentials
 
 
 creds_dict = json.loads(os.environ['GOOGLE_CREDS'])
