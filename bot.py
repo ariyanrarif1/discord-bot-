@@ -4,6 +4,17 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import asyncio
 
+import gspread
+from google.oauth2.service_account import Credentials
+import os
+import json
+
+
+creds_dict = json.loads(os.environ['GOOGLE_CREDS'])
+creds = Credentials.from_service_account_info(creds_dict)
+
+gc = gspread.authorize(creds)
+
 # ---------------- Discord Bot Setup ----------------
 intents = discord.Intents.default()
 intents.message_content = True
