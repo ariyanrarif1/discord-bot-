@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import discord
 from discord.ext import commands
 import gspread
@@ -337,4 +336,3 @@ async def del_row(ctx):
 # ---------------- Run Bot ----------------
 import os
 client.run(os.getenv("DISCORD_TOKEN"))
->>>>>>> fb368d32335ce7269a7dca853ce24a86389b717d
