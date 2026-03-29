@@ -16,12 +16,12 @@ creds = Credentials.from_service_account_info(creds_dict)
 
 gc = gspread.authorize(creds)
 
-# ---------------- Discord Bot Setup ----------------
+
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# ---------------- Google Sheets Setup ----------------
+
 scope = [
     "https://spreadsheets.google.com/feeds",
     "https://www.googleapis.com/auth/drive"
@@ -30,12 +30,12 @@ creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", sco
 client = gspread.authorize(creds)
 sheet = client.open("Crime BlackList | EN 01").sheet1  # replace with your sheet name
 
-# ---------------- Bot Events ----------------
+
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
 
-# ---------------- Commands ----------------
+
 
 # 1️⃣ Interactive Blacklist Add
 @bot.command()
@@ -164,7 +164,7 @@ async def del_row(ctx):
         await ctx.send(f"❌ Error deleting row: {e}")
         print("Error:", e)
 
-# ---------------- Run Bot ----------------
+
 import os
 client.run(os.getenv("DISCORD_TOKEN"))
 =======
@@ -190,7 +190,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# ---------------- Google Sheets Setup ----------------
+
 scope = [
     "https://spreadsheets.google.com/feeds",
     "https://www.googleapis.com/auth/drive"
@@ -199,12 +199,12 @@ creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", sco
 client = gspread.authorize(creds)
 sheet = client.open("Crime BlackList | EN 01").sheet1  # replace with your sheet name
 
-# ---------------- Bot Events ----------------
+
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user}")
 
-# ---------------- Commands ----------------
+
 
 # 1️⃣ Interactive Blacklist Add
 @bot.command()
@@ -333,6 +333,5 @@ async def del_row(ctx):
         await ctx.send(f"❌ Error deleting row: {e}")
         print("Error:", e)
 
-# ---------------- Run Bot ----------------
 import os
 client.run(os.getenv("DISCORD_TOKEN"))
