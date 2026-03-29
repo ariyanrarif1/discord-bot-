@@ -167,7 +167,7 @@ async def del_row(ctx):
 
 import os
 client.run(os.getenv("DISCORD_TOKEN"))
-=======
+
 import discord
 from discord.ext import commands
 import gspread
@@ -185,7 +185,7 @@ creds = Credentials.from_service_account_info(creds_dict)
 
 gc = gspread.authorize(creds)
 
-# ---------------- Discord Bot Setup ----------------
+
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
