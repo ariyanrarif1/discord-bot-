@@ -1,337 +1,140 @@
 import discord
 from discord.ext import commands
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
+import json
+import os
 import asyncio
 
-import gspread
-from google.oauth2.service_account import Credentials
-import os
-import json
-from google.oauth2.service_account import Credentials
-
-
-creds_dict = json.loads(os.environ['GOOGLE_CREDS'])
-creds = Credentials.from_service_account_info(creds_dict)
-
-gc = gspread.authorize(creds)
-
-
-intents = discord.Intents.default()
-intents.message_content = True
-bot = commands.Bot(command_prefix="!", intents=intents)
-
+# ================== GOOGLE SHEETS ==================
 
 scope = [
     "https://spreadsheets.google.com/feeds",
     "https://www.googleapis.com/auth/drive"
 ]
-creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
-client = gspread.authorize(creds)
-sheet = client.open("Crime BlackList | EN 01").sheet1  # replace with your sheet name
 
-
-@bot.event
-async def on_ready():
-    print(f"Logged in as {bot.user}")
-
-
-
-# 1️⃣ Interactive Blacklist Add
-@bot.command()
-async def bl(ctx):
-    questions = [
-        "Nickname",
-        "Additional",
-        "Discord Tag / ID",
-        "Reason",
-        "Blacklist Duration",
-        "Blacklist Dates",
-        "by",
-        "Additional Info"
-    ]
-    answers = []
-
-    def check(m):
-        return m.author == ctx.author and m.channel == ctx.channel
-
-    for question in questions:
-        await ctx.send(f"➡ Please enter **{question}**:")
-        try:
-            msg = await bot.wait_for("message", check=check, timeout=120)
-            answers.append(msg.content)
-        except asyncio.TimeoutError:
-            await ctx.send("⏰ Timeout! Command cancelled.")
-            return
-
-    try:
-        sheet.append_row(answers)
-        await ctx.send(f"✅ Blacklist entry added for `{answers[0]}` successfully!")
-    except Exception as e:
-        await ctx.send(f"❌ Error writing to sheet: {e}")
-        print("Error:", e)
-
-# 2️⃣ Interactive Name Check
-@bot.command()
-async def chek(ctx):
-    await ctx.send("➡ Please enter the **Nickname** to check:")
-
-    def check(m):
-        return m.author == ctx.author and m.channel == ctx.channel
-
-    try:
-        msg = await bot.wait_for("message", check=check, timeout=60)
-        search_name = msg.content.strip()
-    except asyncio.TimeoutError:
-        await ctx.send("⏰ Timeout! Command cancelled.")
-        return
-
-    try:
-        data = sheet.get_all_records()
-        found = False
-        for row in data:
-            if str(row.get("Nickname","")).lower() == search_name.lower():
-                found = True
-                details = "\n".join([f"{k}: {v}" for k,v in row.items()])
-                await ctx.send(f"✅ Found `{search_name}`:\n```\n{details}\n```")
-                break
-        if not found:
-            await ctx.send(f"❌ Name `{search_name}` not found in the sheet.")
-    except Exception as e:
-        await ctx.send(f"❌ Error reading sheet: {e}")
-        print("Error:", e)
-
-# 3️⃣ Read last N rows (default 10)
-@bot.command()
-async def read(ctx, limit: int = 10):
-    try:
-        data = sheet.get_all_records()
-        if not data:
-            await ctx.send("Sheet is empty!")
-            return
-        
-        data = data[-limit:]
-        msg = " | ".join(data[0].keys()) + "\n"
-        for row in data:
-            row_text = " | ".join(str(v) for v in row.values())
-            if len(msg) + len(row_text) + 1 > 1900:
-                await ctx.send(f"```\n{msg}```")
-                msg = ""
-            msg += row_text + "\n"
-        if msg:
-            await ctx.send(f"```\n{msg}```")
-    except Exception as e:
-        await ctx.send(f"❌ Error reading sheet: {e}")
-        print("Error:", e)
-
-@bot.command(name="del")
-async def del_row(ctx):
-    await ctx.send("➡ Please enter the **Nickname** to delete:")
-
-    def check(m):
-        return m.author == ctx.author and m.channel == ctx.channel
-
-    try:
-        msg = await bot.wait_for("message", check=check, timeout=60)
-        del_name = msg.content.strip()
-    except asyncio.TimeoutError:
-        await ctx.send("⏰ Timeout! Command cancelled.")
-        return
-
-    await ctx.send(f"⚠ Are you sure you want to delete `{del_name}`? Type **YES** to confirm.")
-
-    try:
-        confirm = await bot.wait_for("message", check=check, timeout=30)
-        if confirm.content.strip().upper() != "YES":
-            await ctx.send("❌ Deletion cancelled.")
-            return
-    except asyncio.TimeoutError:
-        await ctx.send("⏰ Timeout! Deletion cancelled.")
-        return
-
-    try:
-        all_values = sheet.get_all_values()  # raw rows
-        found = False
-        for idx, row in enumerate(all_values, start=1):  # rows are 1-indexed
-            if len(row) > 0 and row[0].strip().lower() == del_name.lower():
-                found = True
-                sheet.delete_rows(idx)  # ✅ works now
-                await ctx.send(f"✅ Row for `{del_name}` has been deleted successfully!")
-                break
-        if not found:
-            await ctx.send(f"❌ Name `{del_name}` not found in the sheet.")
-    except Exception as e:
-        await ctx.send(f"❌ Error deleting row: {e}")
-        print("Error:", e)
-
-
-import os
-client.run(os.getenv("DISCORD_TOKEN"))
-
-import discord
-from discord.ext import commands
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-import asyncio
-
-import gspread
-from google.oauth2.service_account import Credentials
-import os
-import json
-
-
-creds_dict = json.loads(os.environ['GOOGLE_CREDS'])
-creds = Credentials.from_service_account_info(creds_dict)
+creds_dict = json.loads(os.environ["GOOGLE_CREDS"])
+creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
 
 gc = gspread.authorize(creds)
+sheet = gc.open("Crime BlackList | EN 01").sheet1
 
+# ================== DISCORD BOT ==================
 
 intents = discord.Intents.default()
 intents.message_content = True
+
 bot = commands.Bot(command_prefix="!", intents=intents)
-
-
-scope = [
-    "https://spreadsheets.google.com/feeds",
-    "https://www.googleapis.com/auth/drive"
-]
-creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", scope)
-client = gspread.authorize(creds)
-sheet = client.open("Crime BlackList | EN 01").sheet1  # replace with your sheet name
-
 
 @bot.event
 async def on_ready():
-    print(f"Logged in as {bot.user}")
+    print(f"✅ Logged in as {bot.user}")
 
+# ================== ADD BLACKLIST ==================
 
-
-# 1️⃣ Interactive Blacklist Add
 @bot.command()
 async def bl(ctx):
     questions = [
         "Nickname",
         "Additional",
-        "Discord Tag / ID",
+        "Discord ID",
         "Reason",
-        "Blacklist Duration",
-        "Blacklist Dates",
-        "by",
-        "Additional Info"
+        "Duration",
+        "Dates",
+        "By",
+        "Extra Info"
     ]
+
     answers = []
 
     def check(m):
         return m.author == ctx.author and m.channel == ctx.channel
 
-    for question in questions:
-        await ctx.send(f"➡ Please enter **{question}**:")
+    for q in questions:
+        await ctx.send(f"➡ {q} লিখো:")
         try:
             msg = await bot.wait_for("message", check=check, timeout=120)
             answers.append(msg.content)
         except asyncio.TimeoutError:
-            await ctx.send("⏰ Timeout! Command cancelled.")
+            await ctx.send("⏰ Timeout!")
             return
 
-    try:
-        sheet.append_row(answers)
-        await ctx.send(f"✅ Blacklist entry added for `{answers[0]}` successfully!")
-    except Exception as e:
-        await ctx.send(f"❌ Error writing to sheet: {e}")
-        print("Error:", e)
+    sheet.append_row(answers)
+    await ctx.send(f"✅ Added `{answers[0]}`")
 
-# 2️⃣ Interactive Name Check
+# ================== CHECK ==================
+
 @bot.command()
 async def chek(ctx):
-    await ctx.send("➡ Please enter the **Nickname** to check:")
+    await ctx.send("Nickname লিখো:")
 
     def check(m):
         return m.author == ctx.author and m.channel == ctx.channel
 
     try:
         msg = await bot.wait_for("message", check=check, timeout=60)
-        search_name = msg.content.strip()
+        name = msg.content.lower()
     except asyncio.TimeoutError:
-        await ctx.send("⏰ Timeout! Command cancelled.")
+        await ctx.send("⏰ Timeout!")
         return
 
-    try:
-        data = sheet.get_all_records()
-        found = False
-        for row in data:
-            if str(row.get("Nickname","")).lower() == search_name.lower():
-                found = True
-                details = "\n".join([f"{k}: {v}" for k,v in row.items()])
-                await ctx.send(f"✅ Found `{search_name}`:\n```\n{details}\n```")
-                break
-        if not found:
-            await ctx.send(f"❌ Name `{search_name}` not found in the sheet.")
-    except Exception as e:
-        await ctx.send(f"❌ Error reading sheet: {e}")
-        print("Error:", e)
+    data = sheet.get_all_records()
 
-# 3️⃣ Read last N rows (default 10)
+    for row in data:
+        if str(row.get("Nickname", "")).lower() == name:
+            await ctx.send("```\n" + str(row) + "\n```")
+            return
+
+    await ctx.send("❌ Not found")
+
+# ================== READ ==================
+
 @bot.command()
 async def read(ctx, limit: int = 10):
-    try:
-        data = sheet.get_all_records()
-        if not data:
-            await ctx.send("Sheet is empty!")
-            return
-        
-        data = data[-limit:]
-        msg = " | ".join(data[0].keys()) + "\n"
-        for row in data:
-            row_text = " | ".join(str(v) for v in row.values())
-            if len(msg) + len(row_text) + 1 > 1900:
-                await ctx.send(f"```\n{msg}```")
-                msg = ""
-            msg += row_text + "\n"
-        if msg:
-            await ctx.send(f"```\n{msg}```")
-    except Exception as e:
-        await ctx.send(f"❌ Error reading sheet: {e}")
-        print("Error:", e)
+    data = sheet.get_all_records()[-limit:]
+
+    if not data:
+        await ctx.send("Empty sheet")
+        return
+
+    msg = ""
+
+    for row in data:
+        msg += str(row) + "\n"
+
+        if len(msg) > 1800:
+            await ctx.send(f"```\n{msg}\n```")
+            msg = ""
+
+    if msg:
+        await ctx.send(f"```\n{msg}\n```")
+
+# ================== DELETE ==================
 
 @bot.command(name="del")
-async def del_row(ctx):
-    await ctx.send("➡ Please enter the **Nickname** to delete:")
+async def delete(ctx):
+    await ctx.send("Nickname লিখো:")
 
     def check(m):
         return m.author == ctx.author and m.channel == ctx.channel
 
     try:
         msg = await bot.wait_for("message", check=check, timeout=60)
-        del_name = msg.content.strip()
+        name = msg.content.lower()
     except asyncio.TimeoutError:
-        await ctx.send("⏰ Timeout! Command cancelled.")
+        await ctx.send("⏰ Timeout!")
         return
 
-    await ctx.send(f"⚠ Are you sure you want to delete `{del_name}`? Type **YES** to confirm.")
+    values = sheet.get_all_values()
 
-    try:
-        confirm = await bot.wait_for("message", check=check, timeout=30)
-        if confirm.content.strip().upper() != "YES":
-            await ctx.send("❌ Deletion cancelled.")
+    for i, row in enumerate(values, start=1):
+        if row and row[0].lower() == name:
+            sheet.delete_rows(i)
+            await ctx.send("✅ Deleted")
             return
-    except asyncio.TimeoutError:
-        await ctx.send("⏰ Timeout! Deletion cancelled.")
-        return
 
-    try:
-        all_values = sheet.get_all_values()  # raw rows
-        found = False
-        for idx, row in enumerate(all_values, start=1):  # rows are 1-indexed
-            if len(row) > 0 and row[0].strip().lower() == del_name.lower():
-                found = True
-                sheet.delete_rows(idx)  # ✅ works now
-                await ctx.send(f"✅ Row for `{del_name}` has been deleted successfully!")
-                break
-        if not found:
-            await ctx.send(f"❌ Name `{del_name}` not found in the sheet.")
-    except Exception as e:
-        await ctx.send(f"❌ Error deleting row: {e}")
-        print("Error:", e)
+    await ctx.send("❌ Not found")
 
-import os
-client.run(os.getenv("DISCORD_TOKEN"))
+# ================== RUN BOT ==================
+
+bot.run(os.getenv("DISCORD_TOKEN"))
